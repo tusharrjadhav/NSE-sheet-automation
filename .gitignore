@@ -1,0 +1,11 @@
+# Never commit the Google Cloud service-account key — it goes in the GCP_CREDENTIALS secret.
+*.json
+gcp-credentials*
+service-account*.json
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.env
