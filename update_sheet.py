@@ -27,15 +27,56 @@ WORKSHEET_NAME = "Top 250 Stocks"
 TOP_N = 250
 
 
+def _parse_credentials(raw: str) -> dict:
+    """Parse the GCP_CREDENTIALS secret, tolerating common paste mistakes."""
+    if not raw:
+        raise SystemExit("CRITICAL: GCP_CREDENTIALS secret is missing or empty!")
+
+    cleaned = raw.strip().lstrip("\ufeff")  # strip whitespace + BOM
+
+    # Diagnostic that never leaks the secret (first char of the JSON is always '{').
+    print(
+        f"  GCP_CREDENTIALS: length={len(cleaned)}, "
+        f"starts={cleaned[:1]!r}, ends={cleaned[-1:]!r}"
+    )
+
+    # 1) Plain JSON (the normal case).
+    try:
+        return json.loads(cleaned)
+    except json.JSONDecodeError as e:
+        first_err = e
+
+    # 2) Someone wrapped it in single/double quotes.
+    if len(cleaned) >= 2 and cleaned[0] in "'\"" and cleaned[-1] == cleaned[0]:
+        try:
+            return json.loads(cleaned[1:-1])
+        except json.JSONDecodeError:
+            pass
+
+    # 3) Someone base64-encoded the JSON file.
+    try:
+        import base64
+
+        decoded = base64.b64decode(cleaned).decode("utf-8")
+        return json.loads(decoded)
+    except Exception:
+        pass
+
+    raise SystemExit(
+        "CRITICAL: GCP_CREDENTIALS is not valid JSON "
+        f"({first_err}). Re-create the secret by pasting the ENTIRE contents of the "
+        "downloaded service-account .json key file — the value must start with '{' and "
+        "end with '}', with no surrounding quotes, and not be pasted twice."
+    )
+
+
 def get_client() -> gspread.Client:
-    creds_json = os.environ.get("GCP_CREDENTIALS")
-    if not creds_json:
-        raise SystemExit("CRITICAL: GCP_CREDENTIALS secret is missing!")
+    creds_dict = _parse_credentials(os.environ.get("GCP_CREDENTIALS", ""))
     scope = [
         "https://spreadsheets.google.com/feeds",
         "https://www.googleapis.com/auth/drive",
     ]
-    creds = ServiceAccountCredentials.from_json_keyfile_dict(json.loads(creds_json), scope)
+    creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
     return gspread.authorize(creds)
 
 
