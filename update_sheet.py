@@ -21,7 +21,7 @@ import requests
 from oauth2client.service_account import ServiceAccountCredentials
 
 # ── EDIT THIS: your Google Sheet ID (from the sheet URL, between /d/ and /edit) ──
-SPREADSHEET_ID = "PUT_YOUR_SHEET_ID_HERE"
+SPREADSHEET_ID = "1lr1NUAEkH13hjq9jr0ACrNLJlHZ5U5lQ"
 
 WORKSHEET_NAME = "Top 250 Stocks"
 TOP_N = 250
